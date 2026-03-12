@@ -3295,6 +3295,10 @@ class MeshCoreConnector extends ChangeNotifier {
       }
 
       final retryService = _retryService;
+      final hasPendingRetryMessage =
+          retryService != null &&
+          (retryService.hasPendingMessages ||
+              retryService.hasExpectedAckHash(ackHash));
       if (retryService != null &&
           retryService.updateMessageFromSent(
             ackHash,
@@ -3308,7 +3312,7 @@ class MeshCoreConnector extends ChangeNotifier {
         return;
       }
 
-      if (retryService != null) {
+      if (retryService != null && hasPendingRetryMessage) {
         retryService.updateMessageFromSent(ackHash, timeoutMs);
       }
     } else {
@@ -3399,7 +3403,9 @@ class MeshCoreConnector extends ChangeNotifier {
       }
 
       // Handle ACK in retry service
-      if (_retryService != null) {
+      if (_retryService != null &&
+          (_retryService!.hasPendingMessages ||
+              _retryService!.hasExpectedAckHash(ackHash))) {
         _retryService!.handleAckReceived(ackHash, tripTimeMs);
       }
     } else {
