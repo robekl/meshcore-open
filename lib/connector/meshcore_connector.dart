@@ -145,7 +145,7 @@ class MeshCoreConnector extends ChangeNotifier {
   int _reconnectAttempts = 0;
   bool _notifyListenersDirty = false;
   static const Duration _notifyListenersDebounce = Duration(milliseconds: 50);
-  static const Duration _bleFrameFlushDelay = Duration(milliseconds: 20);
+  static const Duration _bleFrameFlushDelay = Duration(milliseconds: 75);
 
   final StreamController<Uint8List> _receivedFramesController =
       StreamController<Uint8List>.broadcast();
@@ -2298,9 +2298,19 @@ class MeshCoreConnector extends ChangeNotifier {
     _bleFrameFlushTimer?.cancel();
     if (_bleFrameBuffer.hasBufferedData) {
       _bleFrameFlushTimer = Timer(_bleFrameFlushDelay, () {
-        final flushed = _bleFrameBuffer.flush();
-        if (flushed != null) {
-          _dispatchFrame(flushed);
+        final expectedLength = _bleFrameBuffer.expectedLength;
+        final discarded = _bleFrameBuffer.discardIncompleteFrame();
+        if (discarded != null) {
+          final preview = discarded
+              .take(8)
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join(' ');
+          _appDebugLogService?.warn(
+            'Dropping incomplete BLE frame len=${discarded.length}'
+            '${expectedLength != null ? ' expected=$expectedLength' : ''}'
+            '${preview.isNotEmpty ? ' bytes=$preview' : ''}',
+            tag: 'Protocol',
+          );
         }
       });
     }
