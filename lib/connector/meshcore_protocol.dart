@@ -261,6 +261,150 @@ const Map<int, Set<int>> _commandResponseCodes = <int, Set<int>>{
   cmdGetAutoAddConfig: <int>{respCodeAutoAddConfig},
 };
 
+String describeProtocolCode(int code, {required bool outgoing}) {
+  if (outgoing) {
+    switch (code) {
+      case cmdAppStart:
+        return 'CMD_APP_START';
+      case cmdSendTxtMsg:
+        return 'CMD_SEND_TXT_MSG';
+      case cmdSendChannelTxtMsg:
+        return 'CMD_SEND_CHANNEL_TXT_MSG';
+      case cmdGetContacts:
+        return 'CMD_GET_CONTACTS';
+      case cmdGetDeviceTime:
+        return 'CMD_GET_DEVICE_TIME';
+      case cmdSetDeviceTime:
+        return 'CMD_SET_DEVICE_TIME';
+      case cmdSendSelfAdvert:
+        return 'CMD_SEND_SELF_ADVERT';
+      case cmdSetAdvertName:
+        return 'CMD_SET_ADVERT_NAME';
+      case cmdAddUpdateContact:
+        return 'CMD_ADD_UPDATE_CONTACT';
+      case cmdSyncNextMessage:
+        return 'CMD_SYNC_NEXT_MESSAGE';
+      case cmdSetRadioParams:
+        return 'CMD_SET_RADIO_PARAMS';
+      case cmdSetRadioTxPower:
+        return 'CMD_SET_RADIO_TX_POWER';
+      case cmdResetPath:
+        return 'CMD_RESET_PATH';
+      case cmdSetAdvertLatLon:
+        return 'CMD_SET_ADVERT_LATLON';
+      case cmdRemoveContact:
+        return 'CMD_REMOVE_CONTACT';
+      case cmdShareContact:
+        return 'CMD_SHARE_CONTACT';
+      case cmdExportContact:
+        return 'CMD_EXPORT_CONTACT';
+      case cmdImportContact:
+        return 'CMD_IMPORT_CONTACT';
+      case cmdReboot:
+        return 'CMD_REBOOT';
+      case cmdGetBattAndStorage:
+        return 'CMD_GET_BATT_AND_STORAGE';
+      case cmdDeviceQuery:
+        return 'CMD_DEVICE_QUERY';
+      case cmdSendLogin:
+        return 'CMD_SEND_LOGIN';
+      case cmdSendStatusReq:
+        return 'CMD_SEND_STATUS_REQ';
+      case cmdGetContactByKey:
+        return 'CMD_GET_CONTACT_BY_KEY';
+      case cmdGetChannel:
+        return 'CMD_GET_CHANNEL';
+      case cmdSetChannel:
+        return 'CMD_SET_CHANNEL';
+      case cmdSendTracePath:
+        return 'CMD_SEND_TRACE_PATH';
+      case cmdSetOtherParams:
+        return 'CMD_SET_OTHER_PARAMS';
+      case cmdGetTelemetryReq:
+        return 'CMD_GET_TELEMETRY_REQ';
+      case cmdGetCustomVar:
+        return 'CMD_GET_CUSTOM_VARS';
+      case cmdSetCustomVar:
+        return 'CMD_SET_CUSTOM_VAR';
+      case cmdSendBinaryReq:
+        return 'CMD_SEND_BINARY_REQ';
+      case cmdSetAutoAddConfig:
+        return 'CMD_SET_AUTO_ADD_CONFIG';
+      case cmdGetAutoAddConfig:
+        return 'CMD_GET_AUTO_ADD_CONFIG';
+      default:
+        return 'CMD_$code';
+    }
+  }
+
+  switch (code) {
+    case respCodeOk:
+      return 'RESP_CODE_OK';
+    case respCodeErr:
+      return 'RESP_CODE_ERR';
+    case respCodeContactsStart:
+      return 'RESP_CODE_CONTACTS_START';
+    case respCodeContact:
+      return 'RESP_CODE_CONTACT';
+    case respCodeEndOfContacts:
+      return 'RESP_CODE_END_OF_CONTACTS';
+    case respCodeSelfInfo:
+      return 'RESP_CODE_SELF_INFO';
+    case respCodeSent:
+      return 'RESP_CODE_SENT';
+    case respCodeContactMsgRecv:
+      return 'RESP_CODE_CONTACT_MSG_RECV';
+    case respCodeChannelMsgRecv:
+      return 'RESP_CODE_CHANNEL_MSG_RECV';
+    case respCodeCurrTime:
+      return 'RESP_CODE_CURR_TIME';
+    case respCodeNoMoreMessages:
+      return 'RESP_CODE_NO_MORE_MESSAGES';
+    case respCodeExportContact:
+      return 'RESP_CODE_EXPORT_CONTACT';
+    case respCodeBattAndStorage:
+      return 'RESP_CODE_BATT_AND_STORAGE';
+    case respCodeDeviceInfo:
+      return 'RESP_CODE_DEVICE_INFO';
+    case respCodeContactMsgRecvV3:
+      return 'RESP_CODE_CONTACT_MSG_RECV_V3';
+    case respCodeChannelMsgRecvV3:
+      return 'RESP_CODE_CHANNEL_MSG_RECV_V3';
+    case respCodeChannelInfo:
+      return 'RESP_CODE_CHANNEL_INFO';
+    case respCodeCustomVars:
+      return 'RESP_CODE_CUSTOM_VARS';
+    case respCodeAutoAddConfig:
+      return 'RESP_CODE_AUTO_ADD_CONFIG';
+    case pushCodeAdvert:
+      return 'PUSH_CODE_ADVERT';
+    case pushCodePathUpdated:
+      return 'PUSH_CODE_PATH_UPDATED';
+    case pushCodeSendConfirmed:
+      return 'PUSH_CODE_SEND_CONFIRMED';
+    case pushCodeMsgWaiting:
+      return 'PUSH_CODE_MSG_WAITING';
+    case pushCodeLoginSuccess:
+      return 'PUSH_CODE_LOGIN_SUCCESS';
+    case pushCodeLoginFail:
+      return 'PUSH_CODE_LOGIN_FAIL';
+    case pushCodeStatusResponse:
+      return 'PUSH_CODE_STATUS_RESPONSE';
+    case pushCodeLogRxData:
+      return 'PUSH_CODE_LOG_RX_DATA';
+    case pushCodeTraceData:
+      return 'PUSH_CODE_TRACE_DATA';
+    case pushCodeNewAdvert:
+      return 'PUSH_CODE_NEW_ADVERT';
+    case pushCodeTelemetryResponse:
+      return 'PUSH_CODE_TELEMETRY_RESPONSE';
+    case pushCodeBinaryResponse:
+      return 'PUSH_CODE_BINARY_RESPONSE';
+    default:
+      return 'CODE_$code';
+  }
+}
+
 Set<int> expectedResponseCodesForCommand(int commandCode) {
   return _commandResponseCodes[commandCode] ?? const <int>{};
 }
@@ -851,14 +995,25 @@ Uint8List buildSendBinaryReq(Uint8List repeaterPubKey, {Uint8List? payload}) {
 //Build a trace request frame
 //[cmd][tag x4][auth x4][flag][payload]
 Uint8List buildTraceReq(int tag, int auth, int flag, {Uint8List? payload}) {
+  final pathBytes = payload ?? Uint8List(0);
+  final pathSizeShift = flag & 0x03;
+  final pathStride = 1 << pathSizeShift;
+  final maxPayloadBytes = maxPathSize * pathStride;
+  if (pathBytes.isEmpty ||
+      pathBytes.length > maxPayloadBytes ||
+      pathBytes.length % pathStride != 0) {
+    throw ArgumentError(
+      'Invalid trace payload length ${pathBytes.length} for flag=$flag '
+      '(max=$maxPayloadBytes stride=$pathStride)',
+    );
+  }
+
   final writer = BufferWriter();
   writer.writeByte(cmdSendTracePath);
   writer.writeUInt32LE(tag);
   writer.writeUInt32LE(auth);
   writer.writeByte(flag);
-  if (payload != null && payload.isNotEmpty) {
-    writer.writeBytes(payload);
-  }
+  writer.writeBytes(pathBytes);
   return writer.toBytes();
 }
 
