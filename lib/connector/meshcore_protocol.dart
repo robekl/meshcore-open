@@ -848,6 +848,30 @@ int calculateMessageTimeout({
   }
 }
 
+class BinaryResponsePacket {
+  final int status;
+  final Uint8List tag;
+  final Uint8List payload;
+
+  const BinaryResponsePacket({
+    required this.status,
+    required this.tag,
+    required this.payload,
+  });
+}
+
+BinaryResponsePacket? parseBinaryResponsePacket(Uint8List frame) {
+  if (frame.length < 6 || frame[0] != pushCodeBinaryResponse) {
+    return null;
+  }
+
+  return BinaryResponsePacket(
+    status: frame[1],
+    tag: Uint8List.fromList(frame.sublist(2, 6)),
+    payload: Uint8List.fromList(frame.sublist(6)),
+  );
+}
+
 // Build CLI command text message frame (companion_radio format)
 // Format: [cmd][txt_type][attempt][timestamp x4][pub_key_prefix x6][text...]\0
 Uint8List buildSendCliCommandFrame(
