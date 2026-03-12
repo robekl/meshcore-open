@@ -798,6 +798,37 @@ int calculateMessageTimeout({
   }
 }
 
+bool? parseLoginOutcome(
+  Uint8List frame, {
+  Uint8List? targetPrefix,
+}) {
+  if (frame.isEmpty) return null;
+
+  final code = frame[0];
+  if (code != pushCodeLoginSuccess && code != pushCodeLoginFail) {
+    return null;
+  }
+
+  if (frame.length == 1) {
+    return code == pushCodeLoginSuccess;
+  }
+
+  if (targetPrefix != null && targetPrefix.isNotEmpty) {
+    final prefixOffset = 2;
+    final prefixEnd = prefixOffset + targetPrefix.length;
+    if (frame.length < prefixEnd) {
+      return null;
+    }
+    for (var i = 0; i < targetPrefix.length; i++) {
+      if (frame[prefixOffset + i] != targetPrefix[i]) {
+        return null;
+      }
+    }
+  }
+
+  return code == pushCodeLoginSuccess;
+}
+
 // Build CLI command text message frame (companion_radio format)
 // Format: [cmd][txt_type][attempt][timestamp x4][pub_key_prefix x6][text...]\0
 Uint8List buildSendCliCommandFrame(
